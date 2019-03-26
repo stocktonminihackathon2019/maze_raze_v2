@@ -4,8 +4,8 @@ import P5Wrapper from "react-p5-wrapper";
 class Maze extends Component {
   gen_maze(p5) {
     //SETTINGS
-    let canvasSize = 650;
-    let frameRate = 60;
+    let canvasSize = 1000;
+    let frameRate = 30;
 
     //MAZE_VARIABLES
     var row = [];
@@ -24,6 +24,9 @@ class Maze extends Component {
       p5.createCanvas(canvasSize + 1, canvasSize + 1); // Size must be the first statement
       p5.frameRate(frameRate);
       p5.background(255,255,255);
+
+      //Program draw will not loop. Only loops on redraw()
+      p5.noLoop();
 
       for (var x = 0; x < mazeSize; x++) {
         for (var y = 0; y < mazeSize; y++) {
@@ -119,9 +122,20 @@ class Maze extends Component {
       for (var x = 0; x < mazeSize; x++) {
         for (var y = 0; y < mazeSize; y++) {
             grid[x][y].showCell();
+            // grid[x][y].fill(p5.floor(p5.random(0, 255)),p5.random(0, 255),p5.random(0, 255));
+            var col = p5.random(0, 255);
+            grid[x][y].fill(col,col,col);
+
         }
       }
     };
+
+    //Redraw only on mouse press
+    p5.mousePressed = function() {
+        p5.redraw();
+    };
+
+    
   }
 
   render() {
