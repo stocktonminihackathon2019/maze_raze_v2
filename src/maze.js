@@ -11,7 +11,7 @@ class Maze extends Component {
     var row = [];
     var grid = [];
 
-    var mazeComplexity = 10;
+    var mazeComplexity = 30;
 
     //ENSURE AN ODD NUMBER SIZE MAZE
     var mazeSize = mazeComplexity % 2 === 0 ? mazeComplexity + 1 : mazeComplexity;
@@ -23,7 +23,7 @@ class Maze extends Component {
     p5.setup = () => {
       p5.createCanvas(canvasSize + 1, canvasSize + 1); // Size must be the first statement
       p5.frameRate(frameRate);
-      p5.background(255,255,255);
+      p5.background(0);
 
       //Program draw will not loop. Only loops on redraw()
       p5.noLoop();
