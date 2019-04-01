@@ -36,38 +36,39 @@ class App extends Component {
               2: true,
               3: true
             }
-          }}
+          }
+        }
           );
-
+        }
         ref.on("value", snapshot => {
           this.setState({
             data: snapshot.val(),
             loading: false
           });
         });
-        } else {
-          ref.on("value", snapshot => {
-            this.setState({
-              data: snapshot.val(),
-              loading: false
-            });
-          });
-        }
     });
   }
 
-  componentDidUpdate(){
+  updateGridObject(grid) {
+    console.log("updateGridObject");
+    var ref = app.database().ref("/grid");
+    console.time();
+    ref.update(grid)
+    .then(() => {
+      console.log("Updated Grid On Firebase");
+    });
+    console.timeEnd();
+
   }
 
-  handleDataUpdate(isCreated, grid) {
+  updateCreatedFlag(isCreated) {
+    console.log("updateCreatedFlag");
     var ref = app.database().ref("/");
     ref.update({created: isCreated});
-    ref = app.database().ref("/grid");
-    ref.update(grid);
-
   }
 
-  handleUpdateCell(x,y,visited,walls){
+  updateCurrentCell(x,y,visited,walls){
+    console.log("updateCurrentCell");
     var ref = app.database().ref("/current");
     ref.update({
       x: x,
@@ -82,18 +83,31 @@ class App extends Component {
     });
   }
 
-  updateFirebase() {}
+  updatePath(x,y) {
+    console.log("updatePath");
+    var ref = app.database().ref("/path");
+    ref.push({
+      x: x,
+      y: y,
+    })
+    .then((ret) => {
+      console.log("IM RETURNING A TINg: ", ret.path.pieces_[1]);
+    });
+  }
 
   render() {
     return (
       <div className="App">
+      <br/>
         {this.state.loading ? (
           <p>Loading...</p>
         ) : (
           <Maze
             data={this.state.data}
-            handleDataUpdate={this.handleDataUpdate}
-            handleUpdateCell={this.handleUpdateCell}
+            updateCurrentCell={this.updateCurrentCell}
+            updateCreatedFlag={this.updateCreatedFlag}
+            updateGridObject={this.updateGridObject}
+            updatePath={this.updatePath}
           />
         )}
       </div>

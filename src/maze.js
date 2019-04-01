@@ -8,55 +8,67 @@ class Maze extends Component {
       p5.windowHeight - p5.windowWidth < 0
         ? p5.windowHeight - 20
         : p5.windowWidth - 20;
-    let frameRate = 60;
 
+    p5.frameRate(60);
     //MAZE_VARIABLES
     var row = [];
     var grid = [];
 
-    var mazeComplexity = 20;
+    var mazeComplexity = 25;
     var speed = (mazeComplexity * mazeComplexity) / 300;
 
     //ENSURE AN ODD NUMBER SIZE MAZE
-    var mazeSize =
-      mazeComplexity % 2 === 0 ? mazeComplexity + 1 : mazeComplexity;
+    var mazeSize = mazeComplexity % 2 === 0 ? mazeComplexity + 1 : mazeComplexity;
     var cellSize = canvasSize / mazeSize;
 
     var stack = [];
     var current;
 
-    //PLAYER VARS
-    var isReclicked = false;
-    var passWait = 0;
-    var handleUpdate;
-    var handleUpdateCell;
+    //Firebase Functions
+    var updateCurrentCell;
+    var updateCreatedFlag;
+    var updateGridObject;
+    var updatePath;
 
     var isCreated = null;
 
     p5.myCustomRedrawAccordingToNewPropsHandler = props => {
       isCreated = props.data.created;
-      handleUpdate = props.handleUpdate;
-      handleUpdateCell = props.handleUpdateCell;
+      updateCurrentCell = props.updateCurrentCell;
+      updateCreatedFlag = props.updateCreatedFlag;
+      updateGridObject = props.updateGridObject;
+      updatePath = props.updatePath;
 
+      if (props.data.created) {
+        isCreated = true;
+        grid[props.data.current.x][props.data.current.y] = new Cell(
+          props.data.current.x,
+          props.data.current.y
+        );
+        grid[props.data.current.x][props.data.current.y].visited =
+          props.data.current.visited;
+        grid[props.data.current.x][props.data.current.y].walls[0] =
+          props.data.current.walls[0];
+        grid[props.data.current.x][props.data.current.y].walls[1] =
+          props.data.current.walls[1];
+        grid[props.data.current.x][props.data.current.y].walls[2] =
+          props.data.current.walls[2];
+        grid[props.data.current.x][props.data.current.y].walls[3] =
+          props.data.current.walls[3];
 
-      // for (var x = 0; x < mazeSize; x++) {
-      //   for (var y = 0; y < mazeSize; y++) {
-      //     var cell = new Cell(x, y);
-      //     grid[x][y] = props.grid.x.y.visited;
-      //     grid[x][y] = props.grid.x.y.visited;
-      //
-      grid[props.data.current.x][props.data.current.y] = new Cell(props.data.current.x, props.data.current.y);
-      grid[props.data.current.x][props.data.current.y].visited = props.data.current.visited;
-      grid[props.data.current.x][props.data.current.y].walls[0] = props.data.current.walls[0];
-      grid[props.data.current.x][props.data.current.y].walls[1] = props.data.current.walls[1];
-      grid[props.data.current.x][props.data.current.y].walls[2] = props.data.current.walls[2];
-      grid[props.data.current.x][props.data.current.y].walls[3] = props.data.current.walls[3];
+          console.log("NEW GRID: ");
+          console.table(grid);
 
-      //     row.push(cell);
-      //   }
-      //   grid.push(row);
-      //   row = [];
-      // }
+        let curr = props.data.path;
+        for (let key in curr) {
+          var x = `${curr[key].x}`;
+          var y = `${curr[key].y}`;
+          // if (x && y ){
+          //   grid[x][y].showCell(255, 255, 255, 100);
+          //   console.log(x, y);
+          // }
+        }
+      }
     };
 
     class Player {
@@ -72,6 +84,7 @@ class Maze extends Component {
         if (d === 1) this.x += 1;
         if (d === 2) this.y += 1;
         if (d === 3) this.x -= 1;
+        
         this.show();
       }
 
@@ -90,7 +103,6 @@ class Maze extends Component {
 
     p5.setup = () => {
       p5.createCanvas(canvasSize + 1, canvasSize + 1); // Size must be the first statement
-      p5.frameRate(frameRate);
       p5.background(255);
       for (var x = 0; x < mazeSize; x++) {
         for (var y = 0; y < mazeSize; y++) {
@@ -110,7 +122,6 @@ class Maze extends Component {
         this.y = y;
         this.walls = [true, true, true, true];
         this.visited = false;
-        this.paths = 0;
       }
 
       checkNeighbors = () => {
@@ -144,16 +155,6 @@ class Maze extends Component {
         }
       };
 
-      cellFill = (r, g, b) => {
-        var x = this.x * cellSize;
-        var y = this.y * cellSize;
-        p5.push();
-        p5.noStroke();
-        p5.fill(r, g, b);
-        p5.rect(x + 3, y + 3, cellSize - 5, cellSize - 5);
-        p5.pop();
-      };
-
       showCell = (r, g, b, a) => {
         var i = this.x * cellSize;
         var j = this.y * cellSize;
@@ -179,7 +180,7 @@ class Maze extends Component {
       };
     }
 
-    function removeWalls(cellA, cellB) {
+    function removeWallsBetween(cellA, cellB) {
       var x = cellA.x - cellB.x;
       var y = cellA.y - cellB.y;
 
@@ -187,87 +188,52 @@ class Maze extends Component {
       if (x === 1) {
         cellA.walls[3] = false;
         cellB.walls[1] = false;
-        cellA.paths++;
       }
       //CellA is on the left
       if (x === -1) {
         cellA.walls[1] = false;
         cellB.walls[3] = false;
-        cellA.paths++;
       }
       //CellA is on the bottom
       if (y === 1) {
         cellA.walls[0] = false;
         cellB.walls[2] = false;
-        cellA.paths++;
       }
       //CellA is on the top
       if (y === -1) {
         cellA.walls[2] = false;
         cellB.walls[0] = false;
-        cellA.paths++;
       }
     }
 
-    function playerPressedKey() {
-      if (!isReclicked && p5.keyIsPressed) {
-        if (
-          p5.keyCode === p5.UP_ARROW &&
-          grid[player.x][player.y].walls[0] === false
-        ) {
-          player.move(0);
-        } else if (
-          p5.keyCode === p5.DOWN_ARROW &&
-          grid[player.x][player.y].walls[2] === false
-        ) {
-          player.move(2);
-        } else if (
-          p5.keyCode === p5.LEFT_ARROW &&
-          grid[player.x][player.y].walls[3] === false
-        ) {
-          player.move(3);
-        } else if (
-          p5.keyCode === p5.RIGHT_ARROW &&
-          grid[player.x][player.y].walls[1] === false
-        ) {
-          player.move(1);
-        }
-        isReclicked = true;
-      }
-      if (passWait % 8 === 0 || !p5.keyIsPressed) {
-        isReclicked = false;
-        passWait = 0;
-      }
-      passWait++;
-    }
-
-    function drawMaze() {
-      if (!isCreated && isCreated!==null) {
-        // handleUpdate(isCreated, JSON.parse(JSON.stringify(grid)));
-        var next;
-        for (var i = 0; i < speed; i++) {
+    function drawMaze2() {
+      for (var i = 0; i < speed; i++) {
+        updateCurrentCell(current.x, current.y, current.visited, current.walls);
+        updatePath(current.x, current.y);
+        var next = current.checkNeighbors();
+        if (next) {
+          next.visited = true;
+          stack.push(current);
+          removeWallsBetween(current, next);
           current.showCell(255, 255, 255, 100);
-          next = current.checkNeighbors();
-          if (next) {
-            next.visited = true;
-            stack.push(current);
-            removeWalls(current, next);
-            current = next;
-          } else if (stack.length > 0) {
-            current = stack.pop();
-          }
-          else {
-            isCreated = true;
-            handleUpdate(isCreated, JSON.parse(JSON.stringify(grid)));
-          }
-          console.log("Handle Update Cell");
-          handleUpdateCell(current.x, current.y, current.visited, current.walls);
+          next.showCell(255, 255, 255, 100);
+          current = next;
+        } else if (stack.length > 0) {
+          current = stack.pop();
+        } else {
+          isCreated = true;
+          updateCreatedFlag(isCreated);
+          updateGridObject(JSON.parse(JSON.stringify(grid)));
         }
-      } else if (isCreated !== null || isCreated) {
-        for (var x = 0; x < mazeSize; x++) {
-          for (var y = 0; y < mazeSize; y++) {
-            grid[x][y].showCell(255, 255, 255, 100);
-          }
+      }
+    }
+
+    function drawMaze3() {
+      for (var x = 0; x < mazeSize; x++) {
+        for (var y = 0; y < mazeSize; y++) {
+          // updateCurrentCell(current.x, current.y, true, current.walls)
+          grid[current.x][current.y].showCell(255, 255, 255, 100);
+          grid[x][y].showCell(255, 255, 255, 100);
         }
       }
     }
@@ -277,16 +243,42 @@ class Maze extends Component {
         0,
         200,
         25,
-        1
+        100
       );
     }
 
+    p5.keyPressed = function() {
+      if (
+        p5.keyCode === p5.UP_ARROW &&
+        grid[player.x][player.y].walls[0] === false
+      ) {
+        player.move(0);
+      } else if (
+        p5.keyCode === p5.DOWN_ARROW &&
+        grid[player.x][player.y].walls[2] === false
+      ) {
+        player.move(2);
+      } else if (
+        p5.keyCode === p5.LEFT_ARROW &&
+        grid[player.x][player.y].walls[3] === false
+      ) {
+        player.move(3);
+      } else if (
+        p5.keyCode === p5.RIGHT_ARROW &&
+        grid[player.x][player.y].walls[1] === false
+      ) {
+        player.move(1);
+      }
+      p5.redraw();
+    };
+
     //Display grid
     p5.draw = function() {
-      drawMaze();
+      if (!isCreated && isCreated !== null) drawMaze2();
+      if (isCreated !== null && isCreated) drawMaze3();
+
       displayGoal();
       player.show();
-      playerPressedKey();
     };
   }
 
@@ -296,15 +288,16 @@ class Maze extends Component {
     data: {}
   };
 
-
   render() {
     return (
       <div>
         <P5Wrapper
           sketch={this.gen_maze}
           data={this.props.data}
-          handleUpdate={this.props.handleDataUpdate}
-          handleUpdateCell={this.props.handleUpdateCell}
+          updateCurrentCell={this.props.updateCurrentCell}
+          updateCreatedFlag={this.props.updateCreatedFlag}
+          updateGridObject={this.props.updateGridObject}
+          updatePath={this.props.updatePath}
         />
       </div>
     );
